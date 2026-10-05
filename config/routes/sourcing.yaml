@@ -1,0 +1,6 @@
+# The sourcing module's pages (vivutio/sourcing-module): rooms requested from
+# partners, under /sourcing. This file is what mounts them, and it is yours:
+# remove the import and the pages are gone.
+sourcing:
+    resource: '@VivutioSourcingBundle/src/Controller/'
+    type: attribute

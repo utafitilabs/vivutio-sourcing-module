@@ -1,0 +1,12 @@
+{# A field's refusal, said beside it, or its hint. #}
+{% macro hint(field, wrong, hint) %}{% if wrong[field] is defined %}<div class="hint"><span>{{ wrong[field] }}</span></div>{% elseif hint %}<div class="hint"><span>{{ hint }}</span></div>{% endif %}{% endmacro %}
+
+{# A request's status as a chip. #}
+{% macro status_chip(status) -%}
+<span class="chip{{ status.value == 'confirmed' ? ' ok' : (status.value == 'declined' ? ' danger' : (status.value == 'requested' ? ' warn' : '')) }}">{{ status.label }}</span>
+{%- endmacro %}
+
+{# The rooms asked for: "2 × Double, 1 × Family tent". #}
+{% macro rooms(request) -%}
+{%- for line in request.lines %}{{ line.rooms }} × {{ line.room }}{{ not loop.last ? ', ' }}{% endfor -%}
+{%- endmacro %}

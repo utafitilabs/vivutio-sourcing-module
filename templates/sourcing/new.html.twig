@@ -1,0 +1,37 @@
+{# A new request for rooms: sent to the camp as it is made. #}
+{% extends '@Shell/page.html.twig' %}
+{% import '@Shell/_icons.html.twig' as icons %}
+{% import '@VivutioSourcing/sourcing/_macros.html.twig' as sourcing_ %}
+
+{% block title %}New room request{% endblock %}
+{% block here %}room_requests{% endblock %}
+
+{% block page %}
+<header class="page-head">
+    <div><nav class="trail" aria-label="Where you are"><a href="{{ path('sourcing_requests') }}">Room requests</a> / New</nav><div class="title"><h1>New room request</h1></div></div>
+    <div class="actions"><a class="button outline" href="{{ path('sourcing_requests') }}">{{ icons.icon('left', 15) }} Back to requests</a></div>
+</header>
+
+<form class="panel" method="post" action="{{ path('sourcing_request_new') }}" novalidate>
+    <header class="panel-head"><h2>Request</h2><p>Sent to the camp as an email when you send it; its reply is recorded here</p></header>
+    <input type="hidden" name="_token" value="{{ csrf_token('sourcing_request_new') }}">
+    {% if expired %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>The form had expired, so nothing was sent. Send it again.</span></div>{% endif %}
+    <div class="grid-2">
+        <div class="field{{ wrong.partner is defined ? ' wrong' }}"><label for="request-partner">Camp or lodge</label><select class="select" id="request-partner" name="partner"><option value="">Choose…</option>{% for camp in camps %}<option value="{{ camp.partnerId }}"{{ camp.partnerId == typed.partner ? ' selected' }}>{{ camp.name }}</option>{% endfor %}</select>{{ sourcing_.hint('partner', wrong, 'The accommodation partners you trade with') }}</div>
+        <div class="field{{ wrong.party is defined ? ' wrong' }}"><label for="request-party">For</label><input class="input" id="request-party" name="party" value="{{ typed.party }}" maxlength="120">{{ sourcing_.hint('party', wrong, 'Mollel party') }}</div>
+        <div class="field{{ wrong.arrival is defined ? ' wrong' }}"><label for="request-arrival">Arriving</label><input class="input" id="request-arrival" name="arrival" type="date" value="{{ typed.arrival }}">{{ sourcing_.hint('arrival', wrong, null) }}</div>
+        <div class="field{{ wrong.nights is defined ? ' wrong' }}"><label for="request-nights">Nights</label><input class="input" id="request-nights" name="nights" type="number" min="1" value="{{ typed.nights }}">{{ sourcing_.hint('nights', wrong, null) }}</div>
+    </div>
+    {% for i, line in lines %}
+        <div class="grid-3">
+            <div class="field{{ wrong['lines[' ~ i ~ '][rooms]'] is defined ? ' wrong' }}"><label for="request-rooms-{{ i }}">Rooms</label><input class="input" id="request-rooms-{{ i }}" name="lines[{{ i }}][rooms]" type="number" min="1" value="{{ line.rooms }}">{{ sourcing_.hint('lines[' ~ i ~ '][rooms]', wrong, null) }}</div>
+            <div class="field{{ wrong['lines[' ~ i ~ '][room]'] is defined ? ' wrong' }}"><label for="request-room-{{ i }}">{{ i == 0 ? 'Of' : 'And of' }}</label><input class="input" id="request-room-{{ i }}" name="lines[{{ i }}][room]" value="{{ line.room }}" maxlength="60" placeholder="{{ i == 0 ? 'Double' : '' }}">{{ sourcing_.hint('lines[' ~ i ~ '][room]', wrong, null) }}</div>
+        </div>
+    {% endfor %}
+    <div class="grid-2">
+        <div class="field{{ wrong.our_reference is defined ? ' wrong' }}"><label for="request-ours">What it is for</label><input class="input" id="request-ours" name="our_reference" value="{{ typed.our_reference }}" maxlength="120">{{ sourcing_.hint('our_reference', wrong, 'A tour, a group: kept here, not sent') }}</div>
+        <div class="field{{ wrong.notes is defined ? ' wrong' }}"><label for="request-notes">Notes for the camp</label><textarea class="textarea" id="request-notes" name="notes" rows="2">{{ typed.notes }}</textarea>{{ sourcing_.hint('notes', wrong, null) }}</div>
+    </div>
+    <footer class="panel-foot"><span class="state">The camp is emailed when you send</span><button type="submit" class="button main">Send the request</button></footer>
+</form>
+{% endblock %}

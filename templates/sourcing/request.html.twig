@@ -1,0 +1,58 @@
+{# A request for rooms: what was asked, where it stands, each step taken, and
+   recording the camp's reply or cancelling. #}
+{% extends '@Shell/page.html.twig' %}
+{% import '@Shell/_icons.html.twig' as icons %}
+{% import '@VivutioSourcing/sourcing/_macros.html.twig' as sourcing_ %}
+
+{% block title %}{{ request.reference }}{% endblock %}
+{% block here %}room_requests{% endblock %}
+
+{% block page %}
+{%- set may = door('room_requests.manage') -%}
+<header class="page-head">
+    <div><nav class="trail" aria-label="Where you are"><a href="{{ path('sourcing_requests') }}">Room requests</a> / {{ request.reference }}</nav><div class="title"><h1>{{ request.reference }}</h1>{{ sourcing_.status_chip(request.status) }}</div><p class="hint">{{ request.party }} at {{ camp ? camp.name : 'a partner no longer kept' }}, {{ dates }}</p></div>
+    <div class="actions"><a class="button outline" href="{{ path('sourcing_requests') }}">{{ icons.icon('left', 15) }} Back to requests</a></div>
+</header>
+
+{% if expired %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>The form had expired, so nothing was recorded. Try again.</span></div>{% endif %}
+{% if wrong.reply is defined %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>{{ wrong.reply }}</span></div>{% endif %}
+
+<div class="columns">
+    <div class="stack">
+        <section class="panel">
+            <header class="panel-head"><h2>Asked for</h2></header>
+            <div class="fact"><span>Rooms</span><b>{{ sourcing_.rooms(request) }}</b></div>
+            <div class="fact"><span>Nights</span><b>{{ request.nights }}, {{ dates }}</b></div>
+            {% if request.ourReference %}<div class="fact"><span>For</span><b>{{ request.ourReference }}</b></div>{% endif %}
+            <div class="fact"><span>Their reference</span><b data-their-reference>{{ request.theirReference ?: '—' }}</b></div>
+            {% if request.notes %}<p class="hint">{{ request.notes|nl2br }}</p>{% endif %}
+        </section>
+        <section class="panel">
+            <header class="panel-head"><h2>Steps</h2><p>Each one kept, oldest first</p></header>
+            <ol data-history>{% for step in request.history %}<li><span>{{ step.said }}</span> <small>{{ step.by }}, {{ step.at|date('j M Y, H:i') }}</small></li>{% endfor %}</ol>
+        </section>
+    </div>
+    {% if may and (open or cancellable) %}
+    <aside class="aside stack">
+        {% if open %}
+        <form class="panel small" method="post" action="{{ path('sourcing_request_reply', {uuid: request.uuid}) }}" novalidate>
+            <header class="panel-head"><h2>The camp's reply</h2><p>Recorded by hand, as it came</p></header>
+            <input type="hidden" name="_token" value="{{ csrf_token('sourcing_request_step') }}">
+            <div class="field"><label for="reply-what">They</label><select class="select" id="reply-what" name="reply"><option value="confirmed">Confirmed</option><option value="declined">Declined</option></select></div>
+            <div class="field{{ wrong.their_reference is defined ? ' wrong' }}"><label for="reply-reference">Their reference</label><input class="input" id="reply-reference" name="their_reference" maxlength="60">{{ sourcing_.hint('their_reference', wrong, null) }}</div>
+            <div class="field{{ wrong.note is defined ? ' wrong' }}"><label for="reply-note">Note</label><input class="input" id="reply-note" name="note" maxlength="200">{{ sourcing_.hint('note', wrong, null) }}</div>
+            <button type="submit" class="button main">Record the reply</button>
+        </form>
+        {% endif %}
+        {% if cancellable %}
+        <form class="panel small" method="post" action="{{ path('sourcing_request_cancel', {uuid: request.uuid}) }}" novalidate>
+            <header class="panel-head"><h2>Cancel</h2><p>The camp is emailed that the rooms are no longer wanted</p></header>
+            <input type="hidden" name="_token" value="{{ csrf_token('sourcing_request_step') }}">
+            <div class="field{{ wrong.reason is defined ? ' wrong' }}"><label for="cancel-reason">Why</label><input class="input" id="cancel-reason" name="reason" maxlength="200">{{ sourcing_.hint('reason', wrong, null) }}</div>
+            <button type="submit" class="button danger">Cancel the request</button>
+        </form>
+        {% endif %}
+    </aside>
+    {% endif %}
+</div>
+{% endblock %}

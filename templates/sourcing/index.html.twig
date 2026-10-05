@@ -1,0 +1,44 @@
+{# Rooms requested from the camps and lodges traded with, by status. #}
+{% extends '@Shell/page.html.twig' %}
+{% import '@VivutioSourcing/sourcing/_macros.html.twig' as sourcing_ %}
+
+{% block title %}Room requests{% endblock %}
+{% block here %}room_requests{% endblock %}
+
+{% block page %}
+<header class="page-head">
+    <div><nav class="trail" aria-label="Where you are">Room requests</nav><div class="title"><h1>Room requests</h1><span class="about">Rooms asked of the camps and lodges you trade with, and their replies</span></div></div>
+    {% if door('room_requests.record') %}<div class="actions"><a class="button main" href="{{ path('sourcing_request_new') }}">New request</a></div>{% endif %}
+</header>
+
+<div class="stack">
+    <form class="tools" method="get" action="{{ path('sourcing_requests') }}" data-tools>
+        <span data-facet="status">
+            <a class="chip" data-chip href="{{ path('sourcing_requests') }}"{{ status is null ? ' aria-current="true"' }}>All <em>{{ total }}</em></a>
+            {% for case in statuses %}
+                <a class="chip" data-chip href="{{ path('sourcing_requests', {status: case.value}) }}"{{ case == status ? ' aria-current="true"' }}>{{ case.label }} <em>{{ counts[case.value] }}</em></a>
+            {% endfor %}
+        </span>
+    </form>
+
+    <section class="panel list">
+        <table class="table">
+            <thead><tr><th>Request</th><th>Camp</th><th style="width:170px">Arriving</th><th style="width:170px">Rooms</th><th style="width:130px">Status</th><th style="width:90px"></th></tr></thead>
+            <tbody>
+            {% for request in requests %}
+                <tr data-request="{{ request.reference }}">
+                    <td><div><b>{{ request.reference }}</b><small>{{ request.party }}{% if request.ourReference %} · {{ request.ourReference }}{% endif %}</small></div></td>
+                    <td>{{ camps[request.partnerId] }}</td>
+                    <td>{{ request.arrival|date('j M Y') }}, {{ request.nights }} {{ request.nights == 1 ? 'night' : 'nights' }}</td>
+                    <td>{{ sourcing_.rooms(request) }}</td>
+                    <td data-status>{{ sourcing_.status_chip(request.status) }}</td>
+                    <td><a class="button outline" href="{{ path('sourcing_request', {uuid: request.uuid}) }}">Open</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="6"><div class="empty"><b>No requests here</b><span>A request asks a camp to hold rooms, and leaves as an email.</span></div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}
