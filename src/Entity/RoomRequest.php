@@ -65,6 +65,10 @@ class RoomRequest
     #[ORM\Column(length: 120)]
     private string $ourReference = '';
 
+    /** The key of the need it answers ("tour_booking:01a…:3"), when it was made from one. */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $need = null;
+
     #[ORM\Column(length: 60)]
     private string $theirReference = '';
 
@@ -159,6 +163,19 @@ class RoomRequest
     public function getOurReference(): string
     {
         return $this->ourReference;
+    }
+
+    /** The need it answers, by its key, when it was made from one. */
+    public function getNeed(): ?string
+    {
+        return $this->need;
+    }
+
+    public function setNeed(?string $need): static
+    {
+        $this->need = $need;
+
+        return $this;
     }
 
     public function setOurReference(string $ourReference): static

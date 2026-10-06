@@ -12,6 +12,25 @@
 </header>
 
 <div class="stack">
+    {% if needs and door('room_requests.record') %}
+    <section class="panel list" data-needs>
+        <header class="panel-head"><h2>Nights to request</h2><p>Nights the bookings spend at partner lodges, not yet requested</p></header>
+        <table class="table">
+            <thead><tr><th>For</th><th>Lodge</th><th style="width:170px">Arriving</th><th style="width:130px">Rooms</th><th style="width:110px"></th></tr></thead>
+            <tbody>
+            {% for need in needs %}
+                <tr data-need>
+                    <td><div><b>{{ need.reference }}</b><small>{{ need.party }} · {{ need.people }} {{ need.people == 1 ? 'person' : 'people' }}</small></div></td>
+                    <td>{{ camps[need.partnerId] }}</td>
+                    <td>{{ need.arrival|date('j M Y') }}, {{ need.nights }} {{ need.nights == 1 ? 'night' : 'nights' }}</td>
+                    <td>{{ (need.people + 1) // 2 }} × Double</td>
+                    <td><a class="button outline" href="{{ path('sourcing_request_new', {need: need.key}) }}">Request</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
     <form class="tools" method="get" action="{{ path('sourcing_requests') }}" data-tools>
         <span data-facet="status">
             <a class="chip" data-chip href="{{ path('sourcing_requests') }}"{{ status is null ? ' aria-current="true"' }}>All <em>{{ total }}</em></a>

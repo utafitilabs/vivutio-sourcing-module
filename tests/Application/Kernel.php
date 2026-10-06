@@ -22,6 +22,11 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Vivutio\Bundle\IdentityBundle\Controller\SecurityController;
 use Vivutio\Bundle\IdentityBundle\Entity\User;
+use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
+use Vivutio\Contracts\Partner\RoomNeedSourceInterface;
+use Vivutio\Sourcing\Tests\Application\StandIn\StandInRoomNeeds;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
  * An installation in miniature: the core's bundles and this module, the
@@ -107,5 +112,10 @@ final class Kernel extends BaseKernel
 
         $services = $container->services();
         $services->set('logger', NullLogger::class);
+
+        // A package's room needs, played by a stand-in.
+        $services->set('test.stand_in.room_needs', StandInRoomNeeds::class)
+            ->args([service(PartnerDirectoryInterface::class)])
+            ->tag(RoomNeedSourceInterface::TAG);
     }
 }

@@ -71,7 +71,13 @@ final readonly class RoomRequestController
             $camps[$one->getPartnerId()] ??= $this->service->partnerOf($one)?->getName() ?? 'A partner no longer kept';
         }
 
+        $needs = $this->service->needsToRequest();
+        foreach ($needs as $need) {
+            $camps[$need->partnerId] ??= $this->service->campName($need->partnerId);
+        }
+
         return new Response($this->twig->render('@VivutioSourcing/sourcing/index.html.twig', [
+            'needs' => $needs,
             'requests' => array_values(array_filter($all, static fn (RoomRequest $one): bool => null === $status || $one->getStatus() === $status)),
             'camps' => $camps,
             'total' => \count($all),
@@ -86,7 +92,18 @@ final readonly class RoomRequestController
     public function new(Request $request, #[CurrentUser] UserInterface $user): Response
     {
         if (!$request->isMethod('POST')) {
-            return $this->newPage([]);
+            $need = $this->service->need($request->query->getString('need'));
+
+            return $this->newPage(null === $need ? [] : [
+                'need' => $need->key,
+                'partner' => $need->partnerId,
+                'party' => $need->party,
+                'arrival' => $need->arrival->format('Y-m-d'),
+                'nights' => (string) $need->nights,
+                'our_reference' => $need->reference,
+                'notes' => $need->notes,
+                'lines' => [['rooms' => (string) RoomRequestService::doublesFor($need->people), 'room' => 'Double']],
+            ]);
         }
         $sent = $request->getPayload()->all();
         if (!$this->tokens->isTokenValid(new CsrfToken('sourcing_request_new', \is_string($sent['_token'] ?? null) ? $sent['_token'] : ''))) {
@@ -181,7 +198,8 @@ final readonly class RoomRequestController
 
         return new Response($this->twig->render('@VivutioSourcing/sourcing/new.html.twig', [
             'camps' => $this->service->camps(),
-            'typed' => ['partner' => $text('partner'), 'party' => $text('party'), 'arrival' => $text('arrival'), 'nights' => $text('nights', '1'), 'notes' => $text('notes'), 'our_reference' => $text('our_reference')],
+            'need' => $this->service->need($text('need')),
+            'typed' => ['need' => $text('need'), 'partner' => $text('partner'), 'party' => $text('party'), 'arrival' => $text('arrival'), 'nights' => $text('nights', '1'), 'notes' => $text('notes'), 'our_reference' => $text('our_reference')],
             'lines' => $lines,
             'wrong' => $wrong,
             'expired' => $expired,

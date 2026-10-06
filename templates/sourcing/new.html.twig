@@ -12,9 +12,11 @@
     <div class="actions"><a class="button outline" href="{{ path('sourcing_requests') }}">{{ icons.icon('left', 15) }} Back to requests</a></div>
 </header>
 
+{% if need %}<div class="notice" role="status" data-need-notice><span>For <b>{{ need.reference }}</b>, the {{ need.party }} on {{ need.about }}: filled in from the booking; change what you need.</span></div>{% endif %}
+
 <form class="panel" method="post" action="{{ path('sourcing_request_new') }}" novalidate>
     <header class="panel-head"><h2>Request</h2><p>Sent to the camp as an email when you send it; its reply is recorded here</p></header>
-    <input type="hidden" name="_token" value="{{ csrf_token('sourcing_request_new') }}">
+    <input type="hidden" name="_token" value="{{ csrf_token('sourcing_request_new') }}"><input type="hidden" name="need" value="{{ typed.need }}">
     {% if expired %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>The form had expired, so nothing was sent. Send it again.</span></div>{% endif %}
     <div class="grid-2">
         <div class="field{{ wrong.partner is defined ? ' wrong' }}"><label for="request-partner">Camp or lodge</label><select class="select" id="request-partner" name="partner"><option value="">Choose…</option>{% for camp in camps %}<option value="{{ camp.partnerId }}"{{ camp.partnerId == typed.partner ? ' selected' }}>{{ camp.name }}</option>{% endfor %}</select>{{ sourcing_.hint('partner', wrong, 'The accommodation partners you trade with') }}</div>

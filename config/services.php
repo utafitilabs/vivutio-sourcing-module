@@ -16,6 +16,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Vivutio\Contracts\Access\ConcernSourceInterface;
 use Vivutio\Contracts\Partner\PartnerChannelInterface;
 use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
+use Vivutio\Contracts\Partner\RoomNeedsInterface;
 use Vivutio\Contracts\Shell\MenuSourceInterface;
 use Vivutio\Contracts\Stay\NightCostSourceInterface;
 use Vivutio\Sourcing\Access\SourcingConcerns;
@@ -62,6 +63,7 @@ return static function (ContainerConfigurator $container): void {
             service(RoomRequestRepository::class),
             service(PartnerDirectoryInterface::class),
             service(PartnerChannelInterface::class),
+            service(RoomNeedsInterface::class),
         ]);
 
     $services->set('sourcing.controller.room_requests', RoomRequestController::class)

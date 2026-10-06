@@ -19,6 +19,8 @@ use Vivutio\Contracts\Partner\PartnerChannelInterface;
 use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
 use Vivutio\Contracts\Partner\PartnerInterface;
 use Vivutio\Contracts\Partner\PartnerMessage;
+use Vivutio\Contracts\Partner\RoomNeed;
+use Vivutio\Contracts\Partner\RoomNeedsInterface;
 use Vivutio\Sourcing\Entity\RoomRequest;
 use Vivutio\Sourcing\Enum\RequestStatusEnum;
 use Vivutio\Sourcing\Exception\InvalidRequestException;
@@ -41,6 +43,7 @@ final readonly class RoomRequestService
         private RoomRequestRepository $requests,
         private PartnerDirectoryInterface $partners,
         private PartnerChannelInterface $channel,
+        private RoomNeedsInterface $needs,
     ) {
     }
 
@@ -111,7 +114,8 @@ final readonly class RoomRequestService
 
         $request = (new RoomRequest($this->reference(), $partner->getPartnerId(), $party, $arrival, (int) $nights, $lines))
             ->setNotes($notes)
-            ->setOurReference(mb_substr($text('our_reference'), 0, 120));
+            ->setOurReference(mb_substr($text('our_reference'), 0, 120))
+            ->setNeed(null === $this->needs->find($text('need')) ? null : $text('need'));
         $said = $this->channel->send($partner, new PartnerMessage(
             $request->getReference(),
             \sprintf('Rooms for the %s, %s', $party, self::dates($request)),
@@ -202,6 +206,42 @@ final readonly class RoomRequestService
         }
 
         return \sprintf("Could you hold these rooms for the %s?\n\n%s%s\n\nPlease confirm with your reference, or tell us if you cannot.", $request->getParty(), implode("\n", $lines), '' === $request->getNotes() ? '' : "\n\n".$request->getNotes());
+    }
+
+    /**
+     * Rooms other packages need at a camp traded with now, that no request
+     * standing answers yet, the soonest first.
+     *
+     * @return list<RoomNeed>
+     */
+    public function needsToRequest(): array
+    {
+        $answered = [];
+        foreach ($this->requests->findAll() as $request) {
+            if (null !== $request->getNeed() && RequestStatusEnum::Cancelled !== $request->getStatus()) {
+                $answered[$request->getNeed()] = true;
+            }
+        }
+        $camps = array_map(static fn (PartnerInterface $camp): string => $camp->getPartnerId(), $this->camps());
+
+        return array_values(array_filter($this->needs->all(), static fn (RoomNeed $need): bool => !isset($answered[$need->key]) && \in_array($need->partnerId, $camps, true)));
+    }
+
+    /** A camp's name by its partner id, or how a partner no longer kept reads. */
+    public function campName(string $partnerId): string
+    {
+        return $this->partners->find($partnerId)?->getName() ?? 'A partner no longer kept';
+    }
+
+    public function need(string $key): ?RoomNeed
+    {
+        return '' === $key ? null : $this->needs->find($key);
+    }
+
+    /** The rooms suggested for a party: a double for every two, rounded up. */
+    public static function doublesFor(int $people): int
+    {
+        return max(1, intdiv($people + 1, 2));
     }
 
     private function reference(): string

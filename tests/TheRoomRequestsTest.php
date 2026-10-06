@@ -128,6 +128,30 @@ final class TheRoomRequestsTest extends WebTestCase
     }
 
     /** Reading requests, sending them and recording their replies are three pairs, each a department must allow. */
+    /** Nights other packages need at a camp are listed, and a request made from one is filled in and remembers it. */
+    public function testARequestIsMadeFromANightToRequest(): void
+    {
+        $this->signedInAs($this->person('Baraka', TierEnum::Admin));
+        $page = $this->browser->request('GET', '/sourcing');
+        self::assertSame([
+            'NC-0001 · Day 1 Hansen family · 4 people | Ngorongoro Rim Camp | 2 Aug 2027, 1 night | 2 × Double',
+            'NC-0001 · Days 3–4 Hansen family · 3 people | Ngorongoro Rim Camp | 4 Aug 2027, 2 nights | 2 × Double',
+        ], $page->filter('tr[data-need]')->each(static fn (Crawler $row): string => $row->filter('td b')->text().' '.implode(' | ', \array_slice($row->filter('td')->each(static fn (Crawler $cell, int $i): string => trim((string) preg_replace('/\s+/u', ' ', 0 === $i ? $cell->filter('small')->text() : $cell->text()))), 0, 4))));
+
+        $page = $this->browser->click($page->filter('tr[data-need]')->first()->selectLink('Request')->link());
+        self::assertStringContainsString('For NC-0001 · Day 1, the Hansen family on Northern Circuit', (string) preg_replace('/\s+/u', ' ', $page->filter('[data-need-notice]')->text()));
+        $form = $page->selectButton('Send the request')->form();
+        self::assertSame([$this->camp->getPartnerId(), 'Hansen family', '2027-08-02', '1', 'NC-0001 · Day 1', '2', 'Double', 'Two children, 9 and 12.', 'stand_in:1'], array_map(static fn (string $name): mixed => $form->getValues()[$name] ?? null, ['partner', 'party', 'arrival', 'nights', 'our_reference', 'lines[0][rooms]', 'lines[0][room]', 'notes', 'need']));
+        $this->browser->submit($form);
+        self::assertResponseRedirects();
+        self::assertSame('stand_in:1', $this->only()->getNeed());
+        self::assertSame(['NC-0001 · Days 3–4'], $this->browser->request('GET', '/sourcing')->filter('tr[data-need] b')->each(static fn (Crawler $b): string => trim($b->text())));
+
+        $page = $this->browser->request('GET', '/sourcing/'.$this->only()->getUuid());
+        $this->browser->submit($page->selectButton('Cancel the request')->form(['reason' => 'The family changed their plans']));
+        self::assertCount(2, $this->browser->request('GET', '/sourcing')->filter('tr[data-need]'), 'a cancelled request leaves the night to request again');
+    }
+
     public function testStaffDoWhatTheirDepartmentAllows(): void
     {
         $this->signedInAs($this->person('Baraka', TierEnum::Admin));
