@@ -1,0 +1,67 @@
+{# One lodge's rates, as drawn (vivutio-designs sourcing/rates/lodge): the
+   currency and board agreed, and a price a person sharing a night by dated
+   period; read only for whoever may not keep them. #}
+{% extends '@Shell/page.html.twig' %}
+{% import '@Shell/_icons.html.twig' as icons %}
+{% import '@VivutioSourcing/sourcing/_macros.html.twig' as sourcing_ %}
+
+{% block title %}{{ lodge.name }} · Lodge rates{% endblock %}
+{% block here %}lodge_rates{% endblock %}
+
+{% block page %}
+{%- set may = door('lodge_rates.manage') -%}
+<header class="page-head">
+    <div><nav class="trail" aria-label="Where you are"><a href="{{ path('sourcing_lodge_rates') }}">Lodge rates</a> / {{ lodge.name }}</nav><div class="title"><h1>{{ lodge.name }}</h1><span class="about">Accommodation partner</span></div></div>
+    <div class="actions"><a class="button outline" href="{{ path('sourcing_lodge_rates') }}">{{ icons.icon('left', 15) }} Back to the lodge rates</a></div>
+</header>
+{% if expired %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>The form had expired, so nothing was saved. Save again.</span></div>{% endif %}
+{%- set period_wrong = wrong|filter((v, k) => k starts with 'periods[') -%}
+{% if period_wrong is not empty %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>{{ period_wrong|first }}</span></div>{% endif %}
+
+{% if may %}
+<form class="stack" method="post" action="{{ path('sourcing_lodge_rate', {partner: lodge.partnerId}) }}" novalidate>
+    <input type="hidden" name="_token" value="{{ csrf_token('sourcing_lodge_rate') }}">
+    <section class="panel">
+        <header class="panel-head"><h2>Agreed</h2><p>The currency and the board the rates are for</p></header>
+        <div class="grid-3">
+            <div class="field{{ wrong.currency is defined ? ' wrong' }}"><label for="rates-currency">Currency</label><input class="input" id="rates-currency" name="currency" value="{{ typed.currency ?? '' }}" maxlength="3" placeholder="USD">{{ sourcing_.hint('currency', wrong, null) }}</div>
+            <div class="field{{ wrong.board is defined ? ' wrong' }}"><label for="rates-board">Board</label><input class="input" id="rates-board" name="board" value="{{ typed.board ?? '' }}" maxlength="40">{{ sourcing_.hint('board', wrong, 'As the lodge says it: Full board, Game package') }}</div>
+        </div>
+    </section>
+    <section class="panel list">
+        <header class="panel-head"><h2>Rates</h2><p>A person a night, sharing; each period from its first night to its last</p></header>
+        <table class="table">
+            <thead><tr><th>From</th><th>To</th><th style="width:220px">A person sharing</th></tr></thead>
+            <tbody>
+            {% for i, period in periods %}
+                <tr>
+                    {% for part, caption in {from: 'First night', to: 'Last night', each: 'A person sharing'} %}
+                        {%- set name = 'periods[' ~ i ~ '][' ~ part ~ ']' -%}
+                        <td{% if wrong[name] is defined %} class="wrong"{% endif %}><input class="input" name="{{ name }}" value="{{ period[part] ?? '' }}"{{ part == 'each' ? ' inputmode="decimal"' : ' type="date"' }} aria-label="{{ caption }}, period {{ i + 1 }}"></td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <footer class="panel-foot"><span class="state">An empty row is left out; periods never overlap</span><button type="reset" class="button quiet">Discard</button><button type="submit" class="button main">Save the rates</button></footer>
+    </section>
+</form>
+{% else %}
+<div class="stack">
+    <section class="panel">
+        <header class="panel-head"><h2>Agreed</h2><p>The currency and the board the rates are for</p></header>
+        <div class="fact"><span>Currency</span><b>{{ typed.currency ?: '—' }}</b></div>
+        <div class="fact"><span>Board</span><b>{{ typed.board ?: '—' }}</b></div>
+    </section>
+    <section class="panel list">
+        <header class="panel-head"><h2>Rates</h2><p>A person a night, sharing</p></header>
+        <table class="table">
+            <thead><tr><th>From</th><th>To</th><th style="width:220px">A person sharing</th></tr></thead>
+            <tbody>
+            {% for period in periods|filter(p => p.from) %}<tr><td>{{ period.from|date('j M Y') }}</td><td>{{ period.to|date('j M Y') }}</td><td>{{ typed.currency }} {{ period.each }}</td></tr>{% else %}<tr><td colspan="3"><div class="empty"><b>No rates yet</b></div></td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,34 @@
+{# What the lodges traded with charge, as drawn (vivutio-designs
+   sourcing/rates/index): each lodge, its board, how many periods it is
+   priced for and the last night they cover. #}
+{% extends '@Shell/page.html.twig' %}
+
+{% block title %}Lodge rates{% endblock %}
+{% block here %}lodge_rates{% endblock %}
+
+{% block page %}
+<header class="page-head">
+    <div><nav class="trail" aria-label="Where you are">Lodge rates</nav><div class="title"><h1>Lodge rates</h1><span class="about">What the camps and lodges you trade with charge you</span></div></div>
+</header>
+
+<section class="panel list">
+    <table class="table">
+        <thead><tr><th>Lodge</th><th style="width:150px">Board</th><th style="width:150px">Rates</th><th style="width:160px">Covered to</th><th style="width:100px"></th></tr></thead>
+        <tbody>
+        {% for lodge in lodges %}
+            {%- set contract = contracts[lodge.partnerId] -%}
+            {%- set periods = contract ? contract.periods : [] -%}
+            <tr data-lodge="{{ lodge.name }}">
+                <td><b>{{ lodge.name }}</b></td>
+                <td>{{ periods is empty ? '—' : contract.board }}</td>
+                <td data-periods>{{ periods is empty ? 'No rates' : periods|length ~ (periods|length == 1 ? ' period' : ' periods') }}</td>
+                <td data-covered>{{ periods is empty ? '—' : (periods|last).to|date('j M Y') }}</td>
+                <td><a class="button outline" href="{{ path('sourcing_lodge_rate', {partner: lodge.partnerId}) }}">Rates</a></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5"><div class="empty"><b>No lodges yet</b><span>A camp or lodge you trade with is added under Partners, as accommodation.</span></div></td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

@@ -17,9 +17,14 @@ use Vivutio\Contracts\Access\ConcernSourceInterface;
 use Vivutio\Contracts\Partner\PartnerChannelInterface;
 use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
 use Vivutio\Contracts\Shell\MenuSourceInterface;
+use Vivutio\Contracts\Stay\NightCostSourceInterface;
 use Vivutio\Sourcing\Access\SourcingConcerns;
+use Vivutio\Sourcing\Controller\LodgeRateController;
 use Vivutio\Sourcing\Controller\RoomRequestController;
+use Vivutio\Sourcing\Place\PartnerNightCosts;
+use Vivutio\Sourcing\Repository\LodgeContractRepository;
 use Vivutio\Sourcing\Repository\RoomRequestRepository;
+use Vivutio\Sourcing\Service\LodgeRateService;
 use Vivutio\Sourcing\Service\RoomRequestService;
 use Vivutio\Sourcing\Shell\SourcingMenu;
 
@@ -40,6 +45,15 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RoomRequestRepository::class)
         ->args([service('doctrine')])
         ->tag('doctrine.repository_service');
+    $services->set(LodgeContractRepository::class)
+        ->args([service('doctrine')])
+        ->tag('doctrine.repository_service');
+
+    $services->set('sourcing.lodge_rates', LodgeRateService::class)
+        ->args([service('doctrine.orm.entity_manager'), service(LodgeContractRepository::class), service(PartnerDirectoryInterface::class)]);
+    $services->set('sourcing.night_costs', PartnerNightCosts::class)
+        ->args([service('sourcing.lodge_rates')])
+        ->tag(NightCostSourceInterface::TAG);
 
     $services->set('sourcing.room_requests', RoomRequestService::class)
         ->args([
@@ -60,4 +74,9 @@ return static function (ContainerConfigurator $container): void {
         ])
         ->public();
     $services->alias(RoomRequestController::class, 'sourcing.controller.room_requests')->public();
+
+    $services->set('sourcing.controller.lodge_rates', LodgeRateController::class)
+        ->args([service('twig'), service('sourcing.lodge_rates'), service('security.authorization_checker'), service('security.csrf.token_manager'), service('router')])
+        ->public();
+    $services->alias(LodgeRateController::class, 'sourcing.controller.lodge_rates')->public();
 };

@@ -25,6 +25,7 @@ use Vivutio\Contracts\Access\Verb;
 final readonly class SourcingConcerns implements ConcernSourceInterface
 {
     public const string ROOM_REQUESTS = 'room_requests';
+    public const string LODGE_RATES = 'lodge_rates';
 
     public function declaredBy(): string
     {
@@ -38,6 +39,15 @@ final readonly class SourcingConcerns implements ConcernSourceInterface
             label: 'Room requests',
             description: 'Rooms requested from the camps and lodges you trade with: reading them, sending one, and recording replies and cancelling.',
             verbs: [Verb::Read, Verb::Record, Verb::Manage],
+            scopes: [Scope::ORGANIZATION],
+            moduleSlug: 'sourcing',
+        );
+
+        yield new Concern(
+            key: self::LODGE_RATES,
+            label: 'Lodge rates',
+            description: 'What the camps and lodges you trade with charge you: reading the rates, and keeping them.',
+            verbs: [Verb::Read, Verb::Manage],
             scopes: [Scope::ORGANIZATION],
             moduleSlug: 'sourcing',
         );

@@ -18,6 +18,48 @@ Checks: `room_requests.read`
 | Admin | allowed: Room requests · vivutio |
 | Super Admin | allowed: Room requests · vivutio |
 
+## sourcing_lodge_rates: GET /sourcing/rates
+
+Checks: `lodge_rates.read`
+
+| Person | Outcome |
+|---|---|
+| signed out | sent to sign-in |
+| deactivated while signed in | sent to sign-in |
+| Staff, no position | refused |
+| Staff holding the pair | refused |
+| Staff holding all but the pair | refused |
+| Admin | allowed: Lodge rates · vivutio |
+| Super Admin | allowed: Lodge rates · vivutio |
+
+## sourcing_lodge_rate: GET /sourcing/rates/0199b1c0-0000-7000-8000-00000000c001
+
+Checks: `lodge_rates.read`
+
+| Person | Outcome |
+|---|---|
+| signed out | sent to sign-in |
+| deactivated while signed in | sent to sign-in |
+| Staff, no position | refused |
+| Staff holding the pair | refused |
+| Staff holding all but the pair | refused |
+| Admin | allowed: Probed camp · Lodge rates · vivutio |
+| Super Admin | allowed: Probed camp · Lodge rates · vivutio |
+
+## sourcing_lodge_rate: POST /sourcing/rates/0199b1c0-0000-7000-8000-00000000c001
+
+Checks: `lodge_rates.read`
+
+| Person | Outcome |
+|---|---|
+| signed out | sent to sign-in |
+| deactivated while signed in | sent to sign-in |
+| Staff, no position | refused |
+| Staff holding the pair | refused |
+| Staff holding all but the pair | refused |
+| Admin | redirected to /sourcing/rates/0199b1c0-0000-7000-8000-00000000c001 |
+| Super Admin | redirected to /sourcing/rates/0199b1c0-0000-7000-8000-00000000c001 |
+
 ## sourcing_request_new: GET /sourcing/new
 
 Checks: `room_requests.record`

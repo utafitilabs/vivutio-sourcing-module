@@ -19,6 +19,7 @@ use Vivutio\Bundle\IdentityBundle\Test\AuthorityTestCase;
 use Vivutio\Bundle\IdentityBundle\Test\Probe;
 use Vivutio\Bundle\PartnerBundle\Entity\Partner;
 use Vivutio\Bundle\PartnerBundle\Enum\PartnerKindEnum;
+use Vivutio\Sourcing\Controller\LodgeRateController;
 use Vivutio\Sourcing\Controller\RoomRequestController;
 use Vivutio\Sourcing\Entity\RoomRequest;
 use Vivutio\Sourcing\Tests\Application\Kernel;
@@ -44,6 +45,9 @@ final class SourcingAuthorityTest extends AuthorityTestCase
     {
         return [
             new Probe(RoomRequestController::REGISTER, 'GET', '/sourcing'),
+            new Probe(LodgeRateController::REGISTER, 'GET', '/sourcing/rates'),
+            new Probe(LodgeRateController::LODGE, 'GET', '/sourcing/rates/'.self::CAMP_UUID),
+            new Probe(LodgeRateController::LODGE, 'POST', '/sourcing/rates/'.self::CAMP_UUID, ['currency' => 'USD', 'board' => 'Full board', 'periods' => [['from' => '2099-01-01', 'to' => '2099-03-31', 'each' => '150']]], formAt: '/sourcing/rates/'.self::CAMP_UUID),
             new Probe(RoomRequestController::NEW, 'GET', '/sourcing/new'),
             new Probe(RoomRequestController::SHOW, 'GET', self::REQUEST),
             // The first allowed records the reply; the next finds it recorded already.
