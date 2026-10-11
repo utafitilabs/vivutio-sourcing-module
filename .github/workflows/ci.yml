@@ -32,6 +32,8 @@ jobs:
 
     env:
       VIVUTIO_TEST_DATABASE_URL: postgresql://app:app@127.0.0.1:5432/sourcing_module_test?serverVersion=17&charset=utf8
+      # The runner's own Chrome, for the core's PDF service.
+      PDF_BROWSER: /usr/bin/google-chrome
 
     steps:
       - uses: actions/checkout@v4

@@ -18,6 +18,7 @@ use Vivutio\Contracts\Partner\PartnerChannelInterface;
 use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
 use Vivutio\Contracts\Partner\RoomNeedsInterface;
 use Vivutio\Contracts\Shell\MenuSourceInterface;
+use Vivutio\Contracts\Shell\PdfPrinterInterface;
 use Vivutio\Contracts\Stay\NightCostSourceInterface;
 use Vivutio\Sourcing\Access\SourcingConcerns;
 use Vivutio\Sourcing\Controller\LodgeRateController;
@@ -64,6 +65,8 @@ return static function (ContainerConfigurator $container): void {
             service(PartnerDirectoryInterface::class),
             service(PartnerChannelInterface::class),
             service(RoomNeedsInterface::class),
+            service('twig'),
+            service(PdfPrinterInterface::class),
         ]);
 
     $services->set('sourcing.controller.room_requests', RoomRequestController::class)

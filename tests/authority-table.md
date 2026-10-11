@@ -88,6 +88,20 @@ Checks: `room_requests.read`
 | Admin | allowed: RQ-0001 · vivutio |
 | Super Admin | allowed: RQ-0001 · vivutio |
 
+## sourcing_request_pdf: GET /sourcing/0199b1c0-0000-7000-8000-00000000c002/pdf
+
+Checks: `room_requests.read`
+
+| Person | Outcome |
+|---|---|
+| signed out | sent to sign-in |
+| deactivated while signed in | sent to sign-in |
+| Staff, no position | refused |
+| Staff holding the pair | refused |
+| Staff holding all but the pair | refused |
+| Admin | allowed |
+| Super Admin | allowed |
+
 ## sourcing_request_reply: POST /sourcing/0199b1c0-0000-7000-8000-00000000c002/reply
 
 Checks: `room_requests.manage`

@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Vivutio\Sourcing\Controller;
 
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -35,7 +37,8 @@ use Vivutio\Sourcing\Service\RoomRequestService;
 
 /**
  * Room requests: the register by status, a new request (sent as it is made),
- * a request's page with its steps, and recording a reply or cancelling.
+ * a request's page with its steps and its letter as a PDF, and recording a
+ * reply or cancelling.
  */
 final readonly class RoomRequestController
 {
@@ -44,6 +47,7 @@ final readonly class RoomRequestController
     public const string SHOW = 'sourcing_request';
     public const string REPLY = 'sourcing_request_reply';
     public const string CANCEL = 'sourcing_request_cancel';
+    public const string PDF = 'sourcing_request_pdf';
 
     public const string READ = 'room_requests.read';
     public const string RECORD = 'room_requests.record';
@@ -126,6 +130,24 @@ final readonly class RoomRequestController
         RoomRequest $roomRequest,
     ): Response {
         return $this->requestPage($roomRequest);
+    }
+
+    /** The request's letter as a PDF, where this installation can print one. */
+    #[Route('/sourcing/{uuid}/pdf', name: self::PDF, requirements: ['uuid' => Requirement::UUID], methods: ['GET'])]
+    #[IsGranted(self::READ)]
+    public function pdf(
+        #[MapEntity(mapping: ['uuid' => 'uuid'])]
+        RoomRequest $roomRequest,
+    ): Response {
+        $pdf = $this->service->pdf($roomRequest);
+        if (null === $pdf) {
+            throw new NotFoundHttpException('Nothing here prints a PDF.');
+        }
+
+        return new Response($pdf, Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, $roomRequest->getReference().'.pdf'),
+        ]);
     }
 
     #[Route('/sourcing/{uuid}/reply', name: self::REPLY, requirements: ['uuid' => Requirement::UUID], methods: ['POST'])]
@@ -217,6 +239,7 @@ final readonly class RoomRequestController
             'dates' => RoomRequestService::dates($roomRequest),
             'open' => RequestStatusEnum::Requested === $roomRequest->getStatus(),
             'cancellable' => RoomRequestService::cancellable($roomRequest),
+            'printable' => $this->service->canPrint(),
             'wrong' => $wrong,
             'expired' => $expired,
         ]), [] === $wrong && !$expired ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY);

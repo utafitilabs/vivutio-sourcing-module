@@ -11,7 +11,7 @@
 {%- set may = door('room_requests.manage') -%}
 <header class="page-head">
     <div><nav class="trail" aria-label="Where you are"><a href="{{ path('sourcing_requests') }}">Room requests</a> / {{ request.reference }}</nav><div class="title"><h1>{{ request.reference }}</h1>{{ sourcing_.status_chip(request.status) }}</div><p class="hint">{{ request.party }} at {{ camp ? camp.name : 'a partner no longer kept' }}, {{ dates }}</p></div>
-    <div class="actions"><a class="button outline" href="{{ path('sourcing_requests') }}">{{ icons.icon('left', 15) }} Back to requests</a></div>
+    <div class="actions">{% if printable %}<a class="button outline" href="{{ path('sourcing_request_pdf', {uuid: request.uuid}) }}">Download the PDF</a>{% endif %}<a class="button outline" href="{{ path('sourcing_requests') }}">{{ icons.icon('left', 15) }} Back to requests</a></div>
 </header>
 
 {% if expired %}<div class="notice danger" role="alert">{{ icons.icon('alert') }}<span>The form had expired, so nothing was recorded. Try again.</span></div>{% endif %}

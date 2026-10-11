@@ -28,7 +28,10 @@ use Vivutio\Bundle\IdentityBundle\Entity\User;
 use Vivutio\Bundle\IdentityBundle\Enum\TierEnum;
 use Vivutio\Bundle\PartnerBundle\Entity\Partner;
 use Vivutio\Bundle\PartnerBundle\Enum\PartnerKindEnum;
+use Vivutio\Bundle\ShellBundle\Service\PdfPrinterService;
+use Vivutio\Contracts\Shell\PdfPrinterInterface;
 use Vivutio\Sourcing\Entity\RoomRequest;
+use Vivutio\Sourcing\Service\RoomRequestService;
 
 /**
  * Rooms requested from an accommodation partner (#8, #9): the request is
@@ -71,14 +74,70 @@ final class TheRoomRequestsTest extends WebTestCase
         $page = $this->browser->followRedirect();
         self::assertSame('RQ-0001', trim($page->filter('h1')->text()));
         self::assertSame('Requested', trim($page->filter('.title .chip')->text()));
-        self::assertSame(['Sent by email to stay@rim-camp.example'], $this->history($page));
+        self::assertSame(['Sent by email to stay@rim-camp.example, with RQ-0001.pdf'], $this->history($page));
 
         $this->browser->submit($page->selectButton('Record the reply')->form(['reply' => 'confirmed', 'their_reference' => 'RIM-7781', 'note' => '']));
         $page = $this->browser->followRedirect();
         self::assertSame('Confirmed', trim($page->filter('.title .chip')->text()));
         self::assertSame('RIM-7781', trim($page->filter('[data-their-reference]')->text()));
-        self::assertSame(['Sent by email to stay@rim-camp.example', 'Confirmed: RIM-7781'], $this->history($page));
+        self::assertSame(['Sent by email to stay@rim-camp.example, with RQ-0001.pdf', 'Confirmed: RIM-7781'], $this->history($page));
         self::assertSame('Confirmed', trim($this->browser->request('GET', '/sourcing')->filter('tr[data-request="RQ-0001"] [data-status]')->text()));
+    }
+
+    /** Standalone trade is an email with a PDF (#7): the request as a letter, attached and downloaded. */
+    public function testTheRequestTravelsAsAPdfAndIsDownloadedFromItsPage(): void
+    {
+        $this->signedInAs($this->person('Baraka', TierEnum::Admin));
+        $this->send(['party' => 'Mollel party']);
+
+        $email = self::getMailerMessage();
+        self::assertInstanceOf(Email::class, $email);
+        $attachments = $email->getAttachments();
+        self::assertCount(1, $attachments);
+        self::assertSame('RQ-0001.pdf', $attachments[0]->getFilename());
+        self::assertSame('application/pdf', $attachments[0]->getContentType());
+        self::assertStringStartsWith('%PDF-', $attachments[0]->getBody());
+
+        $page = $this->browser->request('GET', '/sourcing/'.$this->only()->getUuid());
+        $this->browser->click($page->selectLink('Download the PDF')->link());
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('Content-Type', 'application/pdf');
+        self::assertResponseHeaderSame('Content-Disposition', 'inline; filename=RQ-0001.pdf');
+        self::assertStringStartsWith('%PDF-', (string) $this->browser->getInternalResponse()->getContent());
+    }
+
+    /** The letter says what the email says, to the camp, from the organization and who sent it. */
+    public function testTheLetterSaysWhatTheEmailSays(): void
+    {
+        $this->signedInAs($this->person('Baraka', TierEnum::Admin));
+        $this->send(['party' => 'Mollel party', 'our_reference' => 'Northern Circuit, Nov', 'notes' => 'Two children, 9 and 12.']);
+
+        $letter = $this->letter($this->only());
+        self::assertStringContainsString('<title>RQ-0001</title>', $letter);
+        self::assertStringContainsString('Paulo Saitoti', $letter);
+        self::assertStringContainsString('Ngorongoro Rim Camp', $letter);
+        self::assertStringContainsString('Could you hold these rooms for the Mollel party, arriving Mon 2 Nov 2026 and leaving Wed 4 Nov 2026, 2 nights?', $letter);
+        self::assertStringContainsString('<td class="num">2 ×</td><td>Double</td>', $letter);
+        self::assertStringContainsString('Two children, 9 and 12.', $letter);
+        self::assertStringContainsString('Baraka Kimaro', $letter);
+        self::assertStringNotContainsString('Northern Circuit, Nov', $letter, 'what it is for stays here');
+    }
+
+    /** An installation that names no browser sends the email alone, and the step says so. */
+    public function testWithoutABrowserTheEmailGoesAloneAndSaysSo(): void
+    {
+        $this->signedInAs($this->person('Baraka', TierEnum::Admin));
+        // The kernel kept for the whole test, so the printer set here stays.
+        $this->browser->disableReboot();
+        static::getContainer()->set(PdfPrinterInterface::SERVICE, new PdfPrinterService(null));
+        $this->send(['party' => 'Mollel party']);
+
+        $email = self::getMailerMessage();
+        self::assertInstanceOf(Email::class, $email);
+        self::assertCount(0, $email->getAttachments());
+        $page = $this->browser->followRedirect();
+        self::assertSame(['Sent by email to stay@rim-camp.example, without its PDF: nothing to print with'], $this->history($page));
+        self::assertCount(0, $page->selectLink('Download the PDF'));
     }
 
     public function testARequestIsDeclinedOrCancelledAndThenTakesNoReply(): void
@@ -90,7 +149,7 @@ final class TheRoomRequestsTest extends WebTestCase
 
         $page = $this->browser->request('GET', '/sourcing/'.$first->getUuid());
         $this->browser->submit($page->selectButton('Record the reply')->form(['reply' => 'declined', 'their_reference' => '', 'note' => 'Full that week']));
-        self::assertSame(['Sent by email to stay@rim-camp.example', 'Declined: Full that week'], $this->history($this->browser->followRedirect()));
+        self::assertSame(['Sent by email to stay@rim-camp.example, with RQ-0001.pdf', 'Declined: Full that week'], $this->history($this->browser->followRedirect()));
 
         $page = $this->browser->request('GET', '/sourcing/'.$second->getUuid());
         $this->browser->submit($page->selectButton('Cancel the request')->form(['reason' => 'The party postponed']));
@@ -209,6 +268,14 @@ final class TheRoomRequestsTest extends WebTestCase
     private function history(Crawler $page): array
     {
         return $page->filter('[data-history] li')->each(static fn (Crawler $line): string => trim((string) preg_replace('/\s+/', ' ', $line->filter('span')->text())));
+    }
+
+    private function letter(RoomRequest $request): string
+    {
+        $service = static::getContainer()->get('sourcing.room_requests');
+        self::assertInstanceOf(RoomRequestService::class, $service);
+
+        return $service->letter($request);
     }
 
     private function only(): RoomRequest

@@ -50,6 +50,7 @@ final class SourcingAuthorityTest extends AuthorityTestCase
             new Probe(LodgeRateController::LODGE, 'POST', '/sourcing/rates/'.self::CAMP_UUID, ['currency' => 'USD', 'board' => 'Full board', 'periods' => [['from' => '2099-01-01', 'to' => '2099-03-31', 'each' => '150']]], formAt: '/sourcing/rates/'.self::CAMP_UUID),
             new Probe(RoomRequestController::NEW, 'GET', '/sourcing/new'),
             new Probe(RoomRequestController::SHOW, 'GET', self::REQUEST),
+            new Probe(RoomRequestController::PDF, 'GET', self::REQUEST.'/pdf'),
             // The first allowed records the reply; the next finds it recorded already.
             new Probe(RoomRequestController::REPLY, 'POST', self::REQUEST.'/reply', ['reply' => 'confirmed', 'their_reference' => 'PROBE-1', 'note' => ''], formAt: self::REQUEST),
             new Probe(RoomRequestController::CANCEL, 'POST', self::REQUEST.'/cancel', ['reason' => 'Probed'], formAt: self::REQUEST),

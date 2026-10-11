@@ -1,0 +1,26 @@
+{# A room request as a letter to the camp (vivutio-designs
+   sourcing/requests/variants-pdf, A): printed to a PDF, attached to the email
+   and downloaded from the request's page. #}
+{% extends '@Shell/print.html.twig' %}
+
+{% block title %}{{ request.reference }}{% endblock %}
+
+{% block style %}
+.head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10mm;border-bottom:2px solid var(--accent)}
+.org{font-size:14pt;font-weight:700}
+.to{margin:10mm 0 8mm}
+table.rooms{min-width:60%;margin:4mm 0 6mm}
+.sign{margin-top:12mm}
+{% endblock %}
+
+{% block document %}
+{%- set org = organization() -%}
+<div class="head"><div>{% if org %}<div class="org">{{ org.name }}</div>{% if org.country %}<div class="muted">{{ org.country }}</div>{% endif %}{% endif %}</div><div class="muted">{{ sent|date('j M Y') }}</div></div>
+<div class="to">{% if contact %}<div>{{ contact }}</div>{% endif %}<div><b>{{ camp ? camp.name : 'A partner no longer kept' }}</b></div>{% if camp %}<div class="muted">{{ camp.email }}</div>{% endif %}</div>
+<h1>Room request {{ request.reference }}</h1>
+<p>Could you hold these rooms for the {{ request.party }}, arriving {{ request.arrival|date('D j M Y') }} and leaving {{ request.departure|date('D j M Y') }}, {{ request.nights }} {{ request.nights == 1 ? 'night' : 'nights' }}?</p>
+<table class="rooms"><tr><th>Rooms</th><th>Of</th></tr>{% for line in request.lines %}<tr><td class="num">{{ line.rooms }} ×</td><td>{{ line.room }}</td></tr>{% endfor %}</table>
+{% if request.notes %}<p>{{ request.notes|nl2br }}</p>{% endif %}
+<p>Please confirm with your reference, quoting <b>{{ request.reference }}</b>, or tell us if you cannot.</p>
+<div class="sign">{{ by }}{% if org %}<br><span class="muted">{{ org.name }}</span>{% endif %}</div>
+{% endblock %}

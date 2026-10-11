@@ -15,12 +15,16 @@ namespace Vivutio\Sourcing\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Twig\Environment;
+use Vivutio\Bundle\PartnerBundle\Entity\Partner;
+use Vivutio\Contracts\Partner\PartnerAttachment;
 use Vivutio\Contracts\Partner\PartnerChannelInterface;
 use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
 use Vivutio\Contracts\Partner\PartnerInterface;
 use Vivutio\Contracts\Partner\PartnerMessage;
 use Vivutio\Contracts\Partner\RoomNeed;
 use Vivutio\Contracts\Partner\RoomNeedsInterface;
+use Vivutio\Contracts\Shell\PdfPrinterInterface;
 use Vivutio\Sourcing\Entity\RoomRequest;
 use Vivutio\Sourcing\Enum\RequestStatusEnum;
 use Vivutio\Sourcing\Exception\InvalidRequestException;
@@ -31,6 +35,8 @@ use Vivutio\Sourcing\Repository\RoomRequestRepository;
  * core's partner channel the moment it is made; the camp's reply, confirmed
  * with its reference or declined, is recorded by hand; a request still open
  * is cancelled with a message saying so. Every step is kept on the request.
+ * The request goes with a letter as a PDF (#7) where the installation can
+ * print one, and without it otherwise.
  */
 final readonly class RoomRequestService
 {
@@ -44,6 +50,8 @@ final readonly class RoomRequestService
         private PartnerDirectoryInterface $partners,
         private PartnerChannelInterface $channel,
         private RoomNeedsInterface $needs,
+        private Environment $twig,
+        private PdfPrinterInterface $printer,
     ) {
     }
 
@@ -116,12 +124,15 @@ final readonly class RoomRequestService
             ->setNotes($notes)
             ->setOurReference(mb_substr($text('our_reference'), 0, 120))
             ->setNeed(null === $this->needs->find($text('need')) ? null : $text('need'));
+        $pdf = $this->printer->print($this->letter($request, $by));
+        $filename = $request->getReference().'.pdf';
         $said = $this->channel->send($partner, new PartnerMessage(
             $request->getReference(),
             \sprintf('Rooms for the %s, %s', $party, self::dates($request)),
             self::body($request),
+            null === $pdf ? [] : [new PartnerAttachment($filename, 'application/pdf', $pdf)],
         ));
-        $request->record($this->clock->now(), $by, $said);
+        $request->record($this->clock->now(), $by, $said.(null === $pdf ? ', without its PDF: nothing to print with' : ', with '.$filename));
         $this->entityManager->persist($request);
         $this->entityManager->flush();
 
@@ -180,6 +191,37 @@ final readonly class RoomRequestService
     }
 
     /** "2 to 4 Nov 2026", "30 Nov to 2 Dec 2026", "30 Dec 2026 to 2 Jan 2027". */
+    /** Whether this installation prints a request's letter. */
+    public function canPrint(): bool
+    {
+        return $this->printer->canPrint();
+    }
+
+    /** The request's letter as a PDF, or null where nothing can print it. */
+    public function pdf(RoomRequest $request): ?string
+    {
+        return $this->printer->print($this->letter($request));
+    }
+
+    /**
+     * The request as a letter to the camp, in the Shell's print layout: what
+     * the email says, from the organization and who sent it; what it is for
+     * here stays here.
+     */
+    public function letter(RoomRequest $request, ?string $by = null): string
+    {
+        $first = $request->getHistory()[0] ?? null;
+        $partner = $this->partnerOf($request);
+
+        return $this->twig->render('@VivutioSourcing/sourcing/letter.html.twig', [
+            'request' => $request,
+            'camp' => $partner,
+            'contact' => $partner instanceof Partner ? $partner->getContact() : '',
+            'sent' => null === $first ? $this->clock->now() : new \DateTimeImmutable($first['at']),
+            'by' => $by ?? $first['by'] ?? '',
+        ]);
+    }
+
     public static function dates(RoomRequest $request): string
     {
         $from = $request->getArrival();
