@@ -17,6 +17,7 @@ use Vivutio\Contracts\Access\ConcernSourceInterface;
 use Vivutio\Contracts\Partner\PartnerChannelInterface;
 use Vivutio\Contracts\Partner\PartnerDirectoryInterface;
 use Vivutio\Contracts\Partner\RoomNeedsInterface;
+use Vivutio\Contracts\Shell\DashboardSourceInterface;
 use Vivutio\Contracts\Shell\MenuSourceInterface;
 use Vivutio\Contracts\Shell\PdfPrinterInterface;
 use Vivutio\Contracts\Stay\NightCostSourceInterface;
@@ -28,6 +29,7 @@ use Vivutio\Sourcing\Repository\LodgeContractRepository;
 use Vivutio\Sourcing\Repository\RoomRequestRepository;
 use Vivutio\Sourcing\Service\LodgeRateService;
 use Vivutio\Sourcing\Service\RoomRequestService;
+use Vivutio\Sourcing\Shell\SourcingDashboard;
 use Vivutio\Sourcing\Shell\SourcingMenu;
 
 /*
@@ -68,6 +70,9 @@ return static function (ContainerConfigurator $container): void {
             service('twig'),
             service(PdfPrinterInterface::class),
         ]);
+    $services->set('sourcing.dashboard', SourcingDashboard::class)
+        ->args([service(RoomRequestRepository::class), service('sourcing.room_requests'), service('clock')])
+        ->tag(DashboardSourceInterface::TAG);
 
     $services->set('sourcing.controller.room_requests', RoomRequestController::class)
         ->args([

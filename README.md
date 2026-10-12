@@ -41,6 +41,12 @@ request, with who took it and when.
 The module names no other module; it reads partners through the core's
 `PartnerDirectoryInterface` and keeps only a partner's id.
 
+On the organization's **dashboard** it puts one card through the core's
+`DashboardSourceInterface`, for whoever may read room requests: "Waiting on a
+reply", the requests sent and not yet answered, the longest waiting first, five
+at most, each with how long it has waited (from three days on, in amber), and
+a door to the register's requested ones.
+
 ## Who may do what
 
 | Pair | Who |

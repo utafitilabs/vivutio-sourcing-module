@@ -16,6 +16,7 @@ namespace Vivutio\Sourcing\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Vivutio\Sourcing\Entity\RoomRequest;
+use Vivutio\Sourcing\Enum\RequestStatusEnum;
 
 /**
  * @extends ServiceEntityRepository<RoomRequest>
@@ -25,5 +26,21 @@ class RoomRequestRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, RoomRequest::class);
+    }
+
+    /**
+     * Requests sent and not yet answered, the longest waiting first: a
+     * request is sent the moment it is made.
+     *
+     * @return list<RoomRequest>
+     */
+    public function waiting(int $most): array
+    {
+        return $this->findBy(['status' => RequestStatusEnum::Requested], ['id' => 'ASC'], $most);
+    }
+
+    public function countWaiting(): int
+    {
+        return $this->count(['status' => RequestStatusEnum::Requested]);
     }
 }
